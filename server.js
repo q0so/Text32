@@ -1,50 +1,70 @@
 const express = require('express');
-const mongoose = require('mongoose');
+const session = require('express-session');
+const bodyParser = require('body-parser');
+const sqlite3 = require('sqlite3').verbose();
 const bcrypt = require('bcrypt');
+
 const app = express();
-app.use(express.json());
-app.use(express.static(__dirname)); // للسماح بتحميل الملفات الثابتة مثل `index.html` و `script.js`
+const db = new sqlite3.Database(':memory:'); // يمكن استبدالها بملف قاعدة بيانات مثل 'database.db'
 
-mongoose.connect('mongodb://localhost:27017/mydatabase', { useNewUrlParser: true, useUnifiedTopology: true });
-
-// تعريف مخطط المستخدمين
-const userSchema = new mongoose.Schema({
-    email: String,
-    password: String,
-    notes: [String]
+// إعداد قاعدة البيانات
+db.serialize(() => {
+    db.run("CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT UNIQUE, password TEXT)");
+    db.run("CREATE TABLE texts (id INTEGER PRIMARY KEY, user_id INTEGER, text TEXT)");
 });
 
-const User = mongoose.model('User', userSchema);
+app.use(express.static('public'));
+app.use(bodyParser.json());
+app.use(session({ secret: 'secret', resave: false, saveUninitialized: true }));
 
-// مسار إنشاء الحساب
-app.post('/signup', async (req, res) => {
-    const { email, password } = req.body;
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({ email, password: hashedPassword, notes: [] });
-    await newUser.save();
-    res.send("تم إنشاء الحساب بنجاح");
+// تسجيل حساب جديد
+app.post('/register', (req, res) => {
+    const { username, password } = req.body;
+    bcrypt.hash(password, 10, (err, hash) => {
+        db.run("INSERT INTO users (username, password) VALUES (?, ?)", [username, hash], function(err) {
+            if (err) res.json({ success: false, message: "اسم المستخدم موجود بالفعل" });
+            else res.json({ success: true });
+        });
+    });
 });
 
-// مسار تسجيل الدخول
-app.post('/login', async (req, res) => {
-    const { email, password } = req.body;
-    const user = await User.findOne({ email });
-    if (user && await bcrypt.compare(password, user.password)) {
-        res.json({ message: "تم تسجيل الدخول بنجاح", notes: user.notes });
-    } else {
-        res.status(400).send("البريد الإلكتروني أو كلمة المرور غير صحيحة");
-    }
+// تسجيل الدخول
+app.post('/login', (req, res) => {
+    const { username, password } = req.body;
+    db.get("SELECT * FROM users WHERE username = ?", [username], (err, user) => {
+        if (user) {
+            bcrypt.compare(password, user.password, (err, result) => {
+                if (result) {
+                    req.session.userId = user.id;
+                    res.json({ success: true, username: user.username });
+                } else res.json({ success: false, message: "كلمة المرور غير صحيحة" });
+            });
+        } else res.json({ success: false, message: "اسم المستخدم غير موجود" });
+    });
 });
 
-// مسار حفظ النص
-app.post('/save-note', async (req, res) => {
-    const { email, note } = req.body;
-    const user = await User.findOne({ email });
-    if (user) {
-        user.notes.push(note);
-        await user.save();
-        res.send("تم حفظ النص");
-    }
+// حفظ النص
+app.post('/save-text', (req, res) => {
+    if (!req.session.userId) return res.json({ success: false });
+    const { text } = req.body;
+    db.run("INSERT INTO texts (user_id, text) VALUES (?, ?)", [req.session.userId, text], () => {
+        res.json({ success: true });
+    });
 });
 
-app.listen(3000, () => console.log('Server started on port 3000'));
+// جلب النصوص المحفوظة
+app.get('/texts', (req, res) => {
+    if (!req.session.userId) return res.json([]);
+    db.all("SELECT text FROM texts WHERE user_id = ?", [req.session.userId], (err, rows) => {
+        res.json(rows.map(row => row.text));
+    });
+});
+
+// تسجيل الخروج
+app.get('/logout', (req, res) => {
+    req.session.destroy();
+    res.json({ success: true });
+});
+
+// بدء الخادم
+app.listen(3000, () => console.log("الخادم يعمل على http://localhost:3000"));
