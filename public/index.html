@@ -1,159 +1,26 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>رابط وأحرف عشوائية</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&family=Cairo:wght@300;400;600&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Cairo', sans-serif;
-            background-color: #f4f4f4;
-            color: #333;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            text-align: center;
-            direction: rtl; /* لضبط الكتابة من اليمين لليسار */
-        }
-
-        .container {
-            background: #fff;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            padding: 20px;
-            max-width: 500px;
-            width: 100%;
-        }
-
-        h1 {
-            color: #007bff;
-            margin-bottom: 20px;
-            font-family: 'Poppins', sans-serif;
-            font-weight: 600;
-        }
-
-        form {
-            margin-bottom: 20px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 400;
-            color: #555;
-            font-family: 'Cairo', sans-serif;
-        }
-
-        input[type="text"] {
-            width: calc(100% - 22px);
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            margin-bottom: 10px;
-            box-sizing: border-box;
-            font-family: 'Cairo', sans-serif;
-            font-size: 16px;
-        }
-
-        button {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            background-color: #007bff;
-            color: #fff;
-            font-size: 16px;
-            cursor: pointer;
-            font-family: 'Poppins', sans-serif;
-            font-weight: 600;
-        }
-
-        button:hover {
-            background-color: #0056b3;
-        }
-
-        p {
-            font-size: 18px;
-            font-weight: 600;
-            color: #333;
-            font-family: 'Cairo', sans-serif;
-        }
-    </style>
+    <title>Link Shortener</title>
 </head>
 <body>
-    <div class="container">
-        <h1>أدخل النص </h1>
-        <form>
-            <label for="urlInput">أدخل النص:</label>
-            <input type="text" id="urlInput" name="urlInput" required>
-            <button type="button" onclick="generateRandomCharacters()">توليد أحرف عشوائية</button>
-        </form>
+    <h1>Link Shortener</h1>
+    <form id="link-form">
+        <label for="url">Enter a URL:</label>
+        <input type="text" id="url" placeholder="https://example.com" required>
+        <button type="submit">Generate</button>
+    </form>
+    <div id="result"></div>
 
-        <form>
-            <label for="randomCharacters">الأحرف العشوائية:</label>
-            <input type="text" id="randomCharacters" name="randomCharacters" readonly>
-        </form>
+    <form id="lookup-form">
+        <label for="code">Enter Code:</label>
+        <input type="text" id="code" placeholder="Generated Code" required>
+        <button type="submit">Lookup</button>
+    </form>
+    <div id="lookup-result"></div>
 
-        <form>
-            <label for="inputCharacters" >أدخل الأحرف ليظهر النص:</label>
-            <input type="text" id="inputCharacters" name="inputCharacters" required>
-            <button type="button" onclick="checkCharacters()">عرض النص</button>
-        </form>
-
-        <p id="result"></p>
-    </div>
-
-    <script>
-        // توليد أحرف عشوائية بطول عشوائي بين 4 و 10
-        function generateRandomString(minLength, maxLength) {
-            const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-            const length = Math.floor(Math.random() * (maxLength - minLength + 1)) + minLength;
-            let randomString = "";
-            for (let i = 0; i < length; i++) {
-                const randomIndex = Math.floor(Math.random() * charset.length);
-                randomString += charset[randomIndex];
-            }
-            return randomString;
-        }
-
-        async function generateRandomCharacters() {
-            const url = document.getElementById('urlInput').value;
-            const code = generateRandomString(4, 25);
-            try {
-                const response = await fetch('/generate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url, code })
-                });
-                if (response.ok) {
-                    const data = await response.json();
-                    document.getElementById('randomCharacters').value = data.code;
-                } else {
-                    console.error('Error:', response.statusText);
-                }
-            } catch (error) {
-                console.error('Fetch Error:', error);
-            }
-        }
-
-        async function checkCharacters() {
-            const inputString = document.getElementById('inputCharacters').value;
-            try {
-                const response = await fetch(`/lookup/${inputString}`);
-                if (response.ok) {
-                    const data = await response.json();
-                    document.getElementById('result').innerText = 'النص هو: ' + data.url;
-                } else {
-                    document.getElementById('result').innerText = 'الأحرف المدخلة غير صحيحة.';
-                }
-            } catch (error) {
-                console.error('Fetch Error:', error);
-                document.getElementById('result').innerText = 'حدث خطأ أثناء التحقق.';
-            }
-        }
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>
