@@ -1,7 +1,7 @@
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const bodyParser = require('body-parser');
-const helmet = require('helmet'); // مكتبة لتعزيز الأمان
+const helmet = require('helmet');
 const app = express();
 const port = 3000;
 
@@ -12,10 +12,10 @@ db.serialize(() => {
 });
 
 app.use(bodyParser.json());
-app.use(express.static('public'));
-app.use(helmet()); // استخدام helmet لتحسين الأمان
+app.use(express.static('public')); // تحميل ملفات HTML و JS و CSS
+app.use(helmet());
 
-// توليد أحرف عشوائية بطول متغير بين minLength و maxLength
+// توليد أحرف عشوائية
 function generateRandomString(minLength, maxLength) {
     const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     const length = Math.floor(Math.random() * (maxLength - minLength + 1)) + minLength;
@@ -27,10 +27,10 @@ function generateRandomString(minLength, maxLength) {
     return randomString;
 }
 
-// استقبال الرابط والأحرف العشوائية
+// استقبال الرابط
 app.post('/generate', (req, res) => {
     const { url } = req.body;
-    const code = generateRandomString(4, 25); // توليد أكواد بطول يتراوح بين 4 و 10 أحرف
+    const code = generateRandomString(4, 25);
     db.run("INSERT INTO links (code, url) VALUES (?, ?)", [code, url], function(err) {
         if (err) {
             return res.status(500).send("Error saving data");
@@ -39,7 +39,7 @@ app.post('/generate', (req, res) => {
     });
 });
 
-// التحقق من الأحرف والعرض
+// البحث باستخدام الكود
 app.get('/lookup/:code', (req, res) => {
     const { code } = req.params;
     db.get("SELECT url FROM links WHERE code = ?", [code], (err, row) => {
